@@ -43,6 +43,8 @@ config VIDEO_TUNER
 # Used by drivers that need v4l2-mem2mem.ko
 config V4L2_MEM2MEM_DEV
 	tristate
+	select VIDEOBUF2_CORE
+	select VIDEOBUF2_V4L2
 	default y if ARCH_QCOM && VIDEO_V4L2
 
 # Used by LED subsystem flash drivers
