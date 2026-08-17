@@ -18,27 +18,12 @@
  */
 
 #include <asm/unaligned.h>
-#include <linux/ctype.h>
-#include <linux/errno.h>
 
 #include "include/apparmor.h"
-#include "include/audit.h"
-#include "include/cred.h"
-#include "include/crypto.h"
-#include "include/match.h"
-#include "include/path.h"
-#include "include/policy.h"
-#include "include/policy_unpack.h"
 
 #define K_ABI_MASK 0x3ff
-#define FORCE_COMPLAIN_FLAG 0x800
-#define VERSION_LT(X, Y) (((X) & K_ABI_MASK) < ((Y) & K_ABI_MASK))
-#define VERSION_GT(X, Y) (((X) & K_ABI_MASK) > ((Y) & K_ABI_MASK))
 
 #define v5	5	/* base version */
-#define v6	6	/* per entry policydb mediation check */
-#define v7	7
-#define v8	8	/* full network masking */
 
 /*
  * The AppArmor interface treats data as a type byte followed by the

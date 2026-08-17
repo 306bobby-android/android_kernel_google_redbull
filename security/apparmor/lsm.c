@@ -13,35 +13,8 @@
  */
 
 #include <linux/lsm_hooks.h>
-#include <linux/moduleparam.h>
-#include <linux/mm.h>
-#include <linux/mman.h>
-#include <linux/mount.h>
-#include <linux/namei.h>
-#include <linux/ptrace.h>
-#include <linux/ctype.h>
-#include <linux/sysctl.h>
-#include <linux/audit.h>
-#include <linux/user_namespace.h>
-#include <linux/netfilter_ipv4.h>
-#include <linux/netfilter_ipv6.h>
-#include <net/sock.h>
 
 #include "include/apparmor.h"
-#include "include/apparmorfs.h"
-#include "include/audit.h"
-#include "include/capability.h"
-#include "include/cred.h"
-#include "include/file.h"
-#include "include/ipc.h"
-#include "include/net.h"
-#include "include/path.h"
-#include "include/label.h"
-#include "include/policy.h"
-#include "include/policy_ns.h"
-#include "include/procattr.h"
-#include "include/mount.h"
-#include "include/secid.h"
 
 /* Flag indicating whether initialization completed */
 int apparmor_initialized;

@@ -8,15 +8,6 @@
 #define pr_fmt(fmt)	"[drm:%s:%d] " fmt, __func__, __LINE__
 
 #include <linux/delay.h>
-#include <linux/spinlock.h>
-#include <linux/ktime.h>
-#include <linux/debugfs.h>
-#include <linux/uaccess.h>
-#include <linux/dma-buf.h>
-#include <linux/slab.h>
-#include <linux/list_sort.h>
-#include <linux/pm.h>
-#include <linux/pm_runtime.h>
 
 #include "sde_dbg.h"
 #include "sde/sde_hw_catalog.h"
@@ -24,14 +15,6 @@
 #define SDE_DBG_BASE_MAX		10
 
 #define DEFAULT_PANIC		1
-#define DEFAULT_REGDUMP		SDE_DBG_DUMP_IN_MEM
-#define DEFAULT_DBGBUS_SDE	SDE_DBG_DUMP_IN_MEM
-#define DEFAULT_DBGBUS_VBIFRT	SDE_DBG_DUMP_IN_MEM
-#define DEFAULT_BASE_REG_CNT	0x100
-#define GROUP_BYTES		4
-#define ROW_BYTES		16
-#define RANGE_NAME_LEN		40
-#define REG_BASE_NAME_LEN	80
 
 #define DBGBUS_FLAGS_DSPP	BIT(0)
 #define DBGBUS_DSPP_STATUS	0x34C
@@ -41,10 +24,6 @@
 
 /* offsets from sde top address for the debug buses */
 #define DBGBUS_SSPP0	0x188
-#define DBGBUS_AXI_INTF	0x194
-#define DBGBUS_SSPP1	0x298
-#define DBGBUS_DSPP	0x348
-#define DBGBUS_PERIPH	0x418
 
 #define TEST_MASK(id, tp)	((id << 4) | (tp << 1) | BIT(0))
 #define TEST_EXT_MASK(id, tp)	(((tp >> 3) << 24) | (id << 4) \
@@ -52,16 +31,9 @@
 
 /* following offsets are with respect to MDP VBIF base for DBG BUS access */
 #define MMSS_VBIF_CLKON			0x4
-#define MMSS_VBIF_TEST_BUS_OUT_CTRL	0x210
-#define MMSS_VBIF_TEST_BUS_OUT		0x230
 
 /* Vbif error info */
 #define MMSS_VBIF_PND_ERR		0x190
-#define MMSS_VBIF_SRC_ERR		0x194
-#define MMSS_VBIF_XIN_HALT_CTRL1	0x204
-#define MMSS_VBIF_ERR_INFO		0X1a0
-#define MMSS_VBIF_ERR_INFO_1		0x1a4
-#define MMSS_VBIF_CLIENT_NUM		14
 
 /* print debug ranges in groups of 4 u32s */
 #define REG_DUMP_ALIGN		16
@@ -69,14 +41,8 @@
 #define RSC_DEBUG_MUX_SEL_SDM845 9
 
 #define DBG_CTRL_STOP_FTRACE	BIT(0)
-#define DBG_CTRL_PANIC_UNDERRUN	BIT(1)
-#define DBG_CTRL_RESET_HW_PANIC	BIT(2)
-#define DBG_CTRL_MAX			BIT(3)
 
 #define DUMP_BUF_SIZE			(4096 * 512)
-#define DUMP_CLMN_COUNT			4
-#define DUMP_LINE_SIZE			256
-#define DUMP_MAX_LINES_PER_BLK		512
 
 /**
  * struct sde_dbg_reg_offset - tracking for start and end of region

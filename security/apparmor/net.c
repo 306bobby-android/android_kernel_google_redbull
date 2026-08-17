@@ -13,12 +13,6 @@
  */
 
 #include "include/apparmor.h"
-#include "include/audit.h"
-#include "include/cred.h"
-#include "include/label.h"
-#include "include/net.h"
-#include "include/policy.h"
-#include "include/secid.h"
 
 #include "net_names.h"
 
