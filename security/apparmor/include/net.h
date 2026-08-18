@@ -53,6 +53,9 @@
 struct aa_sk_ctx {
 	struct aa_label *label;
 	struct aa_label *peer;
+	/* Set by the af_unix mediation for fs-backed unix sockets, so the
+	 * peer can be identified by path as well as by label. */
+	struct path path;
 };
 
 #define SK_CTX(X) ((X)->sk_security)
@@ -77,6 +80,9 @@ struct aa_sk_ctx {
 ({						\
 	int __e;				\
 	switch ((FAMILY)) {			\
+	case AF_UNIX:				\
+		__e = aa_unix_ ## FN;		\
+		break;				\
 	default:				\
 		__e = DEF_FN;			\
 	}					\
