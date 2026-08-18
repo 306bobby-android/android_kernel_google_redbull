@@ -1224,6 +1224,15 @@ static const struct kernel_param_ops param_ops_aabool = {
 	.get = param_get_aabool
 };
 
+static int param_set_aaintbool(const char *val, const struct kernel_param *kp);
+static int param_get_aaintbool(char *buffer, const struct kernel_param *kp);
+#define param_check_aaintbool param_check_int
+static const struct kernel_param_ops param_ops_aaintbool = {
+	.flags = KERNEL_PARAM_OPS_FL_NOARG,
+	.set = param_set_aaintbool,
+	.get = param_get_aaintbool
+};
+
 static int param_set_aauint(const char *val, const struct kernel_param *kp);
 static int param_get_aauint(char *buffer, const struct kernel_param *kp);
 #define param_check_aauint param_check_uint
@@ -1304,7 +1313,7 @@ module_param_named(paranoid_load, aa_g_paranoid_load, aabool, S_IRUGO);
 
 /* Boot time disable flag */
 static int apparmor_enabled __lsm_ro_after_init = 1;
-module_param_named(enabled, apparmor_enabled, int, 0444);
+module_param_named(enabled, apparmor_enabled, aaintbool, 0444);
 
 static int __init apparmor_enabled_setup(char *str)
 {
@@ -1316,6 +1325,50 @@ static int __init apparmor_enabled_setup(char *str)
 }
 
 __setup("apparmor=", apparmor_enabled_setup);
+
+/*
+ * The AppArmor value is stored as an integer, but the sysfs file
+ * should show Y/N like the other bool parameters, so use a bool as an
+ * intermediary. LXC and other userspace parse the Y/N form to decide
+ * whether AppArmor is available at all.
+ */
+static int param_set_aaintbool(const char *val, const struct kernel_param *kp)
+{
+	struct kernel_param kp_local;
+	bool value;
+	int error;
+
+	if (apparmor_initialized)
+		return -EPERM;
+
+	/* Create local copy, with arg pointing to bool type. */
+	value = !!*((int *)kp->arg);
+	memcpy(&kp_local, kp, sizeof(kp_local));
+	kp_local.arg = &value;
+
+	error = param_set_bool(val, &kp_local);
+	if (!error)
+		*((int *)kp->arg) = *((bool *)kp_local.arg);
+	return error;
+}
+
+/*
+ * To avoid changing /sys/module/apparmor/parameters/enabled from Y/N to
+ * 1/0, this converts the "int that is actually bool" to a bool for
+ * display purposes.
+ */
+static int param_get_aaintbool(char *buffer, const struct kernel_param *kp)
+{
+	struct kernel_param kp_local;
+	bool value;
+
+	/* Create local copy, with arg pointing to bool type. */
+	value = !!*((int *)kp->arg);
+	memcpy(&kp_local, kp, sizeof(kp_local));
+	kp_local.arg = &value;
+
+	return param_get_bool(buffer, &kp_local);
+}
 
 /* set global flag turning off the ability to load policy */
 static int param_set_aalockpolicy(const char *val, const struct kernel_param *kp)
