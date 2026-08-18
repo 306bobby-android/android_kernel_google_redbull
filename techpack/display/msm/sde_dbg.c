@@ -14,7 +14,32 @@
 
 #define SDE_DBG_BASE_MAX		10
 
-#define DEFAULT_PANIC		1
+/*
+ * Do not panic the kernel when the display driver hits an error.
+ *
+ * redfin resets a couple of minutes into every boot with
+ * androidboot.bootreason=kernel_panic, shortly after
+ *
+ *   WARNING: CPU: 0 PID: 244 at kernel/kthread.c:923
+ *            kthread_mod_delayed_work+0x234/0x33c
+ *   Call trace:
+ *    kthread_mod_delayed_work
+ *    sde_encoder_resource_control [msm_drm]
+ *    sde_encoder_frame_done_callback [msm_drm]
+ *    sde_encoder_phys_cmd_pp_tx_done_irq [msm_drm]
+ *    sde_core_irq_callback_handler / sde_hw_intr_dispatch_irq / sde_irq
+ *
+ * i.e. SDE re-queues a kthread_delayed_work onto a different worker than the
+ * one it was initialised against (kthread.c:923 is
+ * WARN_ON_ONCE(work->worker != worker)). The WARN itself is harmless here -
+ * panic_on_warn is 0 - but _sde_dump_array() then panics because
+ * panic_on_err defaults to 1, and the device resets.
+ *
+ * The knob is a debugfs u32 ("panic"), and CONFIG_DEBUG_FS is off in this
+ * build, so there is nothing to turn off at runtime. Default it to 0; a
+ * display error should degrade the display, not kill the phone.
+ */
+#define DEFAULT_PANIC		0
 
 #define DBGBUS_FLAGS_DSPP	BIT(0)
 #define DBGBUS_DSPP_STATUS	0x34C
