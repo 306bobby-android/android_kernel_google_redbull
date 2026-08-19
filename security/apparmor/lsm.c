@@ -820,7 +820,7 @@ static struct path *UNIX_FS_CONN_PATH(struct sock *sk, struct sock *newsk)
 }
 
 /**
- * apparmor_unix_stream_connect - check perms before making unix domain conn
+ * apparmor_unix_stream_connect - label peers on a unix domain connection
  *
  * peer is locked when this hook is called
  */
@@ -830,24 +830,23 @@ static int apparmor_unix_stream_connect(struct sock *sk, struct sock *peer_sk,
 	struct aa_sk_ctx *sk_ctx = SK_CTX(sk);
 	struct aa_sk_ctx *peer_ctx = SK_CTX(peer_sk);
 	struct aa_sk_ctx *new_ctx = SK_CTX(newsk);
-	struct aa_label *label;
 	struct path *path;
-	int error;
 
-	label = __begin_current_label_crit_section();
-	error = aa_unix_peer_perm(label, OP_CONNECT,
-				(AA_MAY_CONNECT | AA_MAY_SEND | AA_MAY_RECEIVE),
-				  sk, peer_sk, NULL);
-	if (!UNIX_FS(peer_sk)) {
-		last_error(error,
-			aa_unix_peer_perm(peer_ctx->label, OP_CONNECT,
-				(AA_MAY_ACCEPT | AA_MAY_SEND | AA_MAY_RECEIVE),
-				peer_sk, sk, label));
-	}
-	__end_current_label_crit_section(label);
-
-	if (error)
-		return error;
+	/* Labeling only, no fine grained unix mediation.
+	 *
+	 * apparmor_parser only emits unix rules when the kernel advertises
+	 * features/network/af_unix, and this kernel's policy unpacker cannot
+	 * consume the extra policydb section that comes with them (it fails
+	 * with -EPROTO, "failed to unpack end of profile"). So the feature is
+	 * deliberately not advertised and no unix rules are ever compiled in;
+	 * enforcing them here would deny sockets that policy never got the
+	 * chance to allow. AF_UNIX permission checks stay on the legacy
+	 * aa_af_perm() path, exactly as before.
+	 *
+	 * What we do keep is the peer cross referencing below, which is the
+	 * whole point: without it SO_PEERSEC returns -ENOPROTOOPT and dbus
+	 * cannot resolve a peer's AppArmor context.
+	 */
 
 	/* label newsk if it wasn't labeled in post_create. Normally this
 	 * would be done in sock_graft, but because we are directly looking
@@ -877,27 +876,6 @@ static int apparmor_unix_stream_connect(struct sock *sk, struct sock *peer_sk,
 	return 0;
 }
 
-/**
- * apparmor_unix_may_send - check perms before conn or sending unix dgrams
- *
- * other is locked when this hook is called
- */
-static int apparmor_unix_may_send(struct socket *sock, struct socket *peer)
-{
-	struct aa_sk_ctx *peer_ctx = SK_CTX(peer->sk);
-	struct aa_label *label;
-	int error;
-
-	label = __begin_current_label_crit_section();
-	error = xcheck(aa_unix_peer_perm(label, OP_SENDMSG, AA_MAY_SEND,
-					 sock->sk, peer->sk, NULL),
-		       aa_unix_peer_perm(peer_ctx->label, OP_SENDMSG,
-					 AA_MAY_RECEIVE,
-					 peer->sk, sock->sk, label));
-	__end_current_label_crit_section(label);
-
-	return error;
-}
 
 /**
  * apparmor_socket_create - check perms before creating a new socket
@@ -1287,7 +1265,6 @@ static struct security_hook_list apparmor_hooks[] __lsm_ro_after_init = {
 	LSM_HOOK_INIT(sk_clone_security, apparmor_sk_clone_security),
 
 	LSM_HOOK_INIT(unix_stream_connect, apparmor_unix_stream_connect),
-	LSM_HOOK_INIT(unix_may_send, apparmor_unix_may_send),
 
 	LSM_HOOK_INIT(socket_create, apparmor_socket_create),
 	LSM_HOOK_INIT(socket_post_create, apparmor_socket_post_create),
