@@ -295,6 +295,24 @@ static bool unpack_u8(struct aa_ext *e, u8 *data, const char *name)
 	return 0;
 }
 
+static bool unpack_u16(struct aa_ext *e, u16 *data, const char *name)
+{
+	void *pos = e->pos;
+
+	if (unpack_nameX(e, AA_U16, name)) {
+		if (!inbounds(e, sizeof(u16)))
+			goto fail;
+		if (data)
+			*data = le16_to_cpu(get_unaligned((__le16 *) e->pos));
+		e->pos += sizeof(u16);
+		return 1;
+	}
+
+fail:
+	e->pos = pos;
+	return 0;
+}
+
 static bool unpack_u32(struct aa_ext *e, u32 *data, const char *name)
 {
 	void *pos = e->pos;
@@ -663,6 +681,7 @@ static struct aa_profile *unpack_profile(struct aa_ext *e, char **ns_name)
 	int i, error = -EPROTO;
 	kernel_cap_t tmpcap;
 	u32 tmp;
+	size_t size;
 
 	*ns_name = NULL;
 
@@ -786,6 +805,37 @@ static struct aa_profile *unpack_profile(struct aa_ext *e, char **ns_name)
 			goto fail;
 		if (!unpack_nameX(e, AA_STRUCTEND, NULL))
 			goto fail;
+	}
+
+	/* Consume the legacy per-AF network compat table.
+	 *
+	 * apparmor_parser emits "net_allowed_af" whenever the kernel
+	 * advertises features/network (fine grained AF_UNIX mediation),
+	 * regardless of what else the feature set contains. This kernel
+	 * mediates networking from the policydb and the v8 network dfa, so
+	 * the table itself is not used - but it has to be consumed or the
+	 * trailing data check at the end of the profile fails with -EPROTO
+	 * ("failed to unpack end of profile") and the profile is rejected.
+	 *
+	 * Layout is an array of AF entries, each three u16: allow, audit,
+	 * quiet.
+	 */
+	size = unpack_array(e, "net_allowed_af");
+	if (size) {
+		for (i = 0; i < size; i++) {
+			u16 tmp16;
+
+			if (!unpack_u16(e, &tmp16, NULL) ||
+			    !unpack_u16(e, &tmp16, NULL) ||
+			    !unpack_u16(e, &tmp16, NULL)) {
+				info = "failed to unpack net_allowed_af";
+				goto fail;
+			}
+		}
+		if (!unpack_nameX(e, AA_ARRAYEND, NULL)) {
+			info = "failed to unpack end of net_allowed_af";
+			goto fail;
+		}
 	}
 
 	if (!unpack_xattrs(e, profile)) {
