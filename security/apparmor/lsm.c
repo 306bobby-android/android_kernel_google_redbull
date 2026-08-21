@@ -1424,12 +1424,7 @@ static int __init apparmor_enabled_setup(char *str)
 
 __setup("apparmor=", apparmor_enabled_setup);
 
-/*
- * The AppArmor value is stored as an integer, but the sysfs file
- * should show Y/N like the other bool parameters, so use a bool as an
- * intermediary. LXC and other userspace parse the Y/N form to decide
- * whether AppArmor is available at all.
- */
+/* Show parameter as Y/N for userspace compatibility. */
 static int param_set_aaintbool(const char *val, const struct kernel_param *kp)
 {
 	struct kernel_param kp_local;

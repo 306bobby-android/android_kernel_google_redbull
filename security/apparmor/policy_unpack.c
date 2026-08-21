@@ -807,19 +807,7 @@ static struct aa_profile *unpack_profile(struct aa_ext *e, char **ns_name)
 			goto fail;
 	}
 
-	/* Consume the legacy per-AF network compat table.
-	 *
-	 * apparmor_parser emits "net_allowed_af" whenever the kernel
-	 * advertises features/network (fine grained AF_UNIX mediation),
-	 * regardless of what else the feature set contains. This kernel
-	 * mediates networking from the policydb and the v8 network dfa, so
-	 * the table itself is not used - but it has to be consumed or the
-	 * trailing data check at the end of the profile fails with -EPROTO
-	 * ("failed to unpack end of profile") and the profile is rejected.
-	 *
-	 * Layout is an array of AF entries, each three u16: allow, audit,
-	 * quiet.
-	 */
+	/* Unpack legacy net_allowed_af compat table. */
 	size = unpack_array(e, "net_allowed_af");
 	if (size) {
 		for (i = 0; i < size; i++) {

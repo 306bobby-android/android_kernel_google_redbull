@@ -22,12 +22,7 @@ struct aa_sfs_entry aa_sfs_entry_network_compat[] = {
 	{ }
 };
 
-/* Advertise fine grained AF_UNIX mediation to userspace. apparmor_parser
- * only emits the unix rules that policy (eg. abstractions/base) already
- * contains when the kernel reports this feature. Without it the parser
- * silently drops every unix rule while the kernel still enforces them,
- * which denies socket(AF_UNIX, ...) to every confined task.
- */
+/* Advertise fine-grained AF_UNIX mediation to userspace. */
 struct aa_sfs_entry aa_sfs_entry_network[] = {
 	AA_SFS_FILE_BOOLEAN("af_unix",	1),
 	{ }
